@@ -20,6 +20,12 @@ import { sepolia } from "thirdweb/chains";
 // Initialize UploadThing API
 const utapi = new UTApi();
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export async function OPTIONS(request: NextRequest) {
   const headers = new Headers();
   headers.set("Access-Control-Allow-Origin", "*");
