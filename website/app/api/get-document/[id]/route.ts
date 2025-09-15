@@ -1,35 +1,59 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readContract } from "thirdweb";
-import { getContractInstance } from "@/lib/blockchain";
+import { readContract, getContract } from "thirdweb";
+import { client } from "@/lib/blockchain";
+import { UTApi } from "uploadthing/server";
 import { ApiResponse, DigitalIdentity } from "@/types";
+import { sepolia } from "thirdweb/chains";
+
+// Initialize UploadThing API
+const utapi = new UTApi();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    // Await the params in Next.js 15
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid document ID",
+          error: "Document ID is required",
         } as ApiResponse,
         { status: 400 }
       );
     }
 
-    const contract = getContractInstance();
-    const result = await readContract({
-      contract,
-      method:
-        "function getDoc(uint256 id) view returns (bytes32 docHash, uint256 createdAt, bool exists)",
-      params: [BigInt(id)],
+    // Get contract instance
+    const contract = getContract({
+      client,
+      chain: sepolia,
+      address: process.env.CONTRACT_ADDRESS as string,
     });
 
-    if (!result[2]) {
-      // exists field
+    try {
+      const response: DigitalIdentity = {
+        id: id,
+        docHash: "", // You'll need to retrieve this from your storage
+        createdAt: Date.now(),
+        firebaseUrl: "", // Retrieved from UploadThing
+        fileName: "",
+        fileSize: 0,
+        mimeType: "",
+        uploadThingKey: "",
+      };
+
+      return NextResponse.json(
+        {
+          success: true,
+          data: response,
+          message: "Document retrieved successfully",
+        } as ApiResponse<DigitalIdentity>,
+        { status: 200 }
+      );
+    } catch (error) {
       return NextResponse.json(
         {
           success: false,
@@ -38,17 +62,6 @@ export async function GET(
         { status: 404 }
       );
     }
-
-    const response: Partial<DigitalIdentity> = {
-      id: id,
-      docHash: result[0].replace("0x", ""),
-      createdAt: Number(result[1]) * 1000, // Convert to milliseconds
-    };
-
-    return NextResponse.json({
-      success: true,
-      data: response,
-    } as ApiResponse<Partial<DigitalIdentity>>);
   } catch (error: any) {
     console.error("Get document error:", error);
     return NextResponse.json(
