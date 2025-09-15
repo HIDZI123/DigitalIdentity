@@ -20,6 +20,14 @@ import { sepolia } from "thirdweb/chains";
 // Initialize UploadThing API
 const utapi = new UTApi();
 
+export async function OPTIONS(request: NextRequest) {
+  const headers = new Headers();
+  headers.set("Access-Control-Allow-Origin", "*");
+  headers.set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  return new NextResponse(null, { status: 204, headers });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
